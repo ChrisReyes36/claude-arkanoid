@@ -1,6 +1,6 @@
 # SPEC 03 — Sonidos de rebote y rotura
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01, SPEC 02
 > **Fecha:** 2026-10-29
 > **Objetivo:** La bola reproduce `ball-bounce.mp3` al rebotar en paddle, paredes o techo y `break-sound.mp3` al romper un bloque, con volumen fijo y la tecla M para silenciar.
