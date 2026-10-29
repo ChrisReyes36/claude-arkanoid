@@ -2,10 +2,13 @@ const CONFIG = {
   width: 800,
   height: 600,
   paddleSpeed: 8,
+  ballSpeed: 6,
 };
 
 const state = {
+  phase: 'ready',
   paddle: { x: 340, y: 560, w: 120, h: 14 },
+  ball: { x: 0, y: 0, r: 8, vx: 0, vy: 0 },
 };
 
 const canvas = document.getElementById( 'game' );
@@ -19,8 +22,23 @@ function setKey( e, down ) {
   else if ( e.code === 'ArrowRight' || e.code === 'KeyD' ) keys.right = down;
 }
 
-window.addEventListener( 'keydown', e => setKey( e, true ) );
+function launchBall() {
+  if ( state.phase !== 'ready' ) return;
+  state.ball.vx = 0;
+  state.ball.vy = -CONFIG.ballSpeed;
+  state.phase = 'playing';
+}
+
+window.addEventListener( 'keydown', e => {
+  if ( e.code === 'Space' ) {
+    e.preventDefault();
+    launchBall();
+  }
+  setKey( e, true );
+} );
 window.addEventListener( 'keyup', e => setKey( e, false ) );
+
+canvas.addEventListener( 'mousedown', launchBall );
 
 canvas.addEventListener( 'mousemove', e => {
   const rect = canvas.getBoundingClientRect();
@@ -38,12 +56,23 @@ function update() {
   if ( keys.left ) state.paddle.x -= CONFIG.paddleSpeed;
   if ( keys.right ) state.paddle.x += CONFIG.paddleSpeed;
   clampPaddle();
+
+  const b = state.ball;
+  if ( state.phase === 'ready' ) {
+    b.x = state.paddle.x + state.paddle.w / 2;
+    b.y = state.paddle.y - b.r;
+  } else if ( state.phase === 'playing' ) {
+    b.x += b.vx;
+    b.y += b.vy;
+  }
 }
 
 function render() {
   ctx.clearRect( 0, 0, CONFIG.width, CONFIG.height );
   const p = state.paddle;
   drawSprite( ctx, 'paddle', p.x, p.y, p.w, p.h );
+  const b = state.ball;
+  drawSprite( ctx, 'ball', b.x - b.r, b.y - b.r, b.r * 2, b.r * 2 );
 }
 
 function loop() {
