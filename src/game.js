@@ -38,6 +38,16 @@ function createBricks() {
 
 state.bricks = createBricks();
 
+function resetGame() {
+  state.phase = 'ready';
+  state.score = 0;
+  state.lives = 3;
+  state.paddle.x = 340;
+  state.ball.vx = 0;
+  state.ball.vy = 0;
+  state.bricks = createBricks();
+}
+
 const canvas = document.getElementById( 'game' );
 const ctx = canvas.getContext( '2d' );
 ctx.imageSmoothingEnabled = false;
@@ -50,22 +60,26 @@ function setKey( e, down ) {
 }
 
 function launchBall() {
-  if ( state.phase !== 'ready' ) return;
   state.ball.vx = 0;
   state.ball.vy = -CONFIG.ballSpeed;
   state.phase = 'playing';
 }
 
+function handleAction() {
+  if ( state.phase === 'ready' ) launchBall();
+  else if ( state.phase === 'won' || state.phase === 'lost' ) resetGame();
+}
+
 window.addEventListener( 'keydown', e => {
   if ( e.code === 'Space' ) {
     e.preventDefault();
-    launchBall();
+    if ( !e.repeat ) handleAction();
   }
   setKey( e, true );
 } );
 window.addEventListener( 'keyup', e => setKey( e, false ) );
 
-canvas.addEventListener( 'mousedown', launchBall );
+canvas.addEventListener( 'mousedown', handleAction );
 
 canvas.addEventListener( 'mousemove', e => {
   const rect = canvas.getBoundingClientRect();
@@ -122,7 +136,7 @@ function loseLife() {
   state.lives--;
   state.ball.vx = 0;
   state.ball.vy = 0;
-  state.phase = 'ready';
+  state.phase = state.lives > 0 ? 'ready' : 'lost';
 }
 
 function drawHud() {
@@ -133,6 +147,20 @@ function drawHud() {
   ctx.fillText( 'Puntaje: ' + state.score, 10, 30 );
   ctx.textAlign = 'right';
   ctx.fillText( 'Vidas: ' + state.lives, CONFIG.width - 10, 30 );
+}
+
+function drawOverlay() {
+  if ( state.phase !== 'won' && state.phase !== 'lost' ) return;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect( 0, 0, CONFIG.width, CONFIG.height );
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 48px monospace';
+  ctx.fillText( state.phase === 'won' ? '¡VICTORIA!' : 'GAME OVER', CONFIG.width / 2, CONFIG.height / 2 - 40 );
+  ctx.font = '24px monospace';
+  ctx.fillText( 'Puntaje final: ' + state.score, CONFIG.width / 2, CONFIG.height / 2 + 10 );
+  ctx.fillText( 'Espacio o clic para reiniciar', CONFIG.width / 2, CONFIG.height / 2 + 50 );
 }
 
 function update() {
@@ -162,6 +190,7 @@ function update() {
 
     bounceOnPaddle();
     bounceOnBricks();
+    if ( state.bricks.every( br => !br.alive ) ) state.phase = 'won';
 
     if ( b.y - b.r > CONFIG.height ) loseLife();
   }
@@ -177,6 +206,7 @@ function render() {
   const b = state.ball;
   drawSprite( ctx, 'ball', b.x - b.r, b.y - b.r, b.r * 2, b.r * 2 );
   drawHud();
+  drawOverlay();
 }
 
 function loop() {
