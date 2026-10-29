@@ -106,6 +106,7 @@ window.addEventListener( 'keydown', e => {
     e.preventDefault();
     if ( !e.repeat ) handleAction();
   }
+  if ( e.code === 'KeyM' && !e.repeat ) state.muted = !state.muted;
   setKey( e, true );
 } );
 window.addEventListener( 'keyup', e => setKey( e, false ) );
@@ -179,6 +180,10 @@ function drawHud() {
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillText( 'Puntaje: ' + state.score, 10, 30 );
+  if ( state.muted ) {
+    ctx.textAlign = 'center';
+    ctx.fillText( 'SILENCIO', CONFIG.width / 2, 30 );
+  }
   ctx.textAlign = 'right';
   ctx.fillText( 'Vidas:', CONFIG.width - 10 - state.lives * LIFE_ICON.size - 4, 30 );
   const { sx, sy, sw, sh } = SPRITES.ball;
