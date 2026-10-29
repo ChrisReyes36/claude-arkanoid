@@ -16,6 +16,7 @@ const state = {
   paddle: { x: 340, y: 560, w: 120, h: 14 },
   ball: { x: 0, y: 0, r: 8, vx: 0, vy: 0 },
   bricks: [],
+  explosions: [],
 };
 
 function createBricks() {
@@ -46,6 +47,7 @@ function resetGame() {
   state.ball.vx = 0;
   state.ball.vy = 0;
   state.bricks = createBricks();
+  state.explosions = [];
 }
 
 const canvas = document.getElementById( 'game' );
@@ -111,7 +113,7 @@ function bounceOnPaddle() {
   b.y = p.y - b.r;
 }
 
-function bounceOnBricks() {
+function bounceOnBricks( now ) {
   const b = state.ball;
   for ( const br of state.bricks ) {
     if ( !br.alive ) continue;
@@ -119,6 +121,7 @@ function bounceOnBricks() {
     if ( b.y + b.r <= br.y || b.y - b.r >= br.y + br.h ) continue;
 
     br.alive = false;
+    state.explosions.push( { x: br.x, y: br.y, w: br.w, h: br.h, color: br.color, start: now } );
     state.score += CONFIG.pointsPerBrick;
 
     // Penetración por cada lado; el menor indica por dónde entró la bola.
@@ -171,7 +174,7 @@ function drawOverlay() {
   ctx.fillText( 'Espacio o clic para reiniciar', CONFIG.width / 2, CONFIG.height / 2 + 50 );
 }
 
-function update() {
+function update( now ) {
   if ( keys.left ) state.paddle.x -= CONFIG.paddleSpeed;
   if ( keys.right ) state.paddle.x += CONFIG.paddleSpeed;
   clampPaddle();
@@ -197,17 +200,25 @@ function update() {
     }
 
     bounceOnPaddle();
-    bounceOnBricks();
-    if ( state.bricks.every( br => !br.alive ) ) state.phase = 'won';
+    bounceOnBricks( now );
+    if ( state.bricks.every( br => !br.alive ) ) state.phase = 'clearing';
 
-    if ( b.y - b.r > CONFIG.height ) loseLife();
+    if ( state.phase === 'playing' && b.y - b.r > CONFIG.height ) loseLife();
+  } else if ( state.phase === 'clearing' && state.explosions.length === 0 ) {
+    state.phase = 'won';
   }
 }
 
-function render() {
+function render( now ) {
   ctx.clearRect( 0, 0, CONFIG.width, CONFIG.height );
   for ( const br of state.bricks ) {
     if ( br.alive ) drawSprite( ctx, 'block_' + br.color, br.x, br.y, br.w, br.h );
+  }
+  const frames = EXPLOSION_FRAMES.red.length;
+  state.explosions = state.explosions.filter( ex => now - ex.start < frames * EXPLOSION_DURATION );
+  for ( const ex of state.explosions ) {
+    const i = Math.floor( ( now - ex.start ) / EXPLOSION_DURATION );
+    drawFrame( ctx, EXPLOSION_FRAMES[ ex.color ][ i ], ex.x, ex.y, ex.w, ex.h );
   }
   const p = state.paddle;
   drawSprite( ctx, 'paddle', p.x, p.y, p.w, p.h );
@@ -217,9 +228,9 @@ function render() {
   drawOverlay();
 }
 
-function loop() {
-  update();
-  render();
+function loop( now ) {
+  update( now );
+  render( now );
   requestAnimationFrame( loop );
 }
 

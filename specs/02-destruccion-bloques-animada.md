@@ -1,6 +1,6 @@
 # SPEC 02 — Destrucción de bloques con animación
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01
 > **Fecha:** 2026-10-29
 > **Objetivo:** Al ser golpeado, cada bloque reproduce su animación de explosión de 4 frames (`EXPLOSION_FRAMES`) en su posición antes de desaparecer del todo.
@@ -64,20 +64,20 @@ Convenciones:
 
 ## Criterios de aceptación
 
-- [ ] Al golpear un bloque se reproducen en su posición sus 4 sprites de explosión del spritesheet (`EXPLOSION_FRAMES[color]`), y después no queda nada dibujado.
-- [ ] No se añade ningún archivo de imagen nuevo a `assets/`.
-- [ ] Cada frame se muestra ~150 ms y la animación completa dura ~600 ms.
-- [ ] La duración es la misma con monitores de 60 Hz y de 120/144 Hz.
-- [ ] La bola atraviesa la zona de un bloque que está explotando sin rebotar.
-- [ ] Puntaje y rebote ocurren en el instante del golpe, no al terminar la animación.
-- [ ] Dos o más bloques golpeados seguidos explotan a la vez, cada uno con su propio ritmo.
-- [ ] Un bloque `gray` explota con los frames rojos.
-- [ ] Al romper el último bloque la bola se detiene, se ve su explosión completa y después aparece el overlay de victoria.
-- [ ] Durante `clearing` no se puede perder una vida y Espacio o clic no hacen nada.
-- [ ] Perder una vida no interrumpe las explosiones en curso.
-- [ ] Reiniciar la partida no deja explosiones a medias en pantalla.
-- [ ] No se reproduce ningún sonido.
-- [ ] El juego sigue abriéndose con doble clic (`file://`) sin errores en consola.
+- [X] Al golpear un bloque se reproducen en su posición sus 4 sprites de explosión del spritesheet (`EXPLOSION_FRAMES[color]`), y después no queda nada dibujado.
+- [X] No se añade ningún archivo de imagen nuevo a `assets/`.
+- [X] Cada frame se muestra ~150 ms y la animación completa dura ~600 ms.
+- [X] La duración es la misma con monitores de 60 Hz y de 120/144 Hz.
+- [X] La bola atraviesa la zona de un bloque que está explotando sin rebotar.
+- [X] Puntaje y rebote ocurren en el instante del golpe, no al terminar la animación.
+- [X] Dos o más bloques golpeados seguidos explotan a la vez, cada uno con su propio ritmo.
+- [X] Un bloque `gray` explota con los frames rojos.
+- [X] Al romper el último bloque la bola se detiene, se ve su explosión completa y después aparece el overlay de victoria.
+- [X] Durante `clearing` no se puede perder una vida y Espacio o clic no hacen nada.
+- [X] Perder una vida no interrumpe las explosiones en curso.
+- [X] Reiniciar la partida no deja explosiones a medias en pantalla.
+- [X] No se reproduce ningún sonido.
+- [X] El juego sigue abriéndose con doble clic (`file://`) sin errores en consola.
 
 ---
 
