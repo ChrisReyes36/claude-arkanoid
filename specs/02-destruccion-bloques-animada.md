@@ -1,6 +1,6 @@
 # SPEC 02 — Destrucción de bloques con animación
 
-> **Estado:** Borrador
+> **Estado:** Aprobado
 > **Depende de:** SPEC 01
 > **Fecha:** 2026-10-29
 > **Objetivo:** Al ser golpeado, cada bloque reproduce su animación de explosión de 4 frames (`EXPLOSION_FRAMES`) en su posición antes de desaparecer del todo.
