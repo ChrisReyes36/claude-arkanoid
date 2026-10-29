@@ -64,6 +64,18 @@ function update() {
   } else if ( state.phase === 'playing' ) {
     b.x += b.vx;
     b.y += b.vy;
+
+    if ( b.x - b.r < 0 ) {
+      b.x = b.r;
+      b.vx = Math.abs( b.vx );
+    } else if ( b.x + b.r > CONFIG.width ) {
+      b.x = CONFIG.width - b.r;
+      b.vx = -Math.abs( b.vx );
+    }
+    if ( b.y - b.r < 0 ) {
+      b.y = b.r;
+      b.vy = Math.abs( b.vy );
+    }
   }
 }
 
