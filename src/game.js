@@ -4,13 +4,36 @@ const CONFIG = {
   paddleSpeed: 8,
   ballSpeed: 6,
   maxBounceAngle: 60,
+  brick: { w: 60, h: 30, cols: 13, rows: 7, offsetX: 10, offsetY: 60 },
+  rowColors: ['red', 'yellow', 'green', 'cyan', 'magenta', 'hotpink', 'gray'],
 };
 
 const state = {
   phase: 'ready',
   paddle: { x: 340, y: 560, w: 120, h: 14 },
   ball: { x: 0, y: 0, r: 8, vx: 0, vy: 0 },
+  bricks: [],
 };
+
+function createBricks() {
+  const { w, h, cols, rows, offsetX, offsetY } = CONFIG.brick;
+  const bricks = [];
+  for ( let row = 0; row < rows; row++ ) {
+    for ( let col = 0; col < cols; col++ ) {
+      bricks.push( {
+        x: offsetX + col * w,
+        y: offsetY + row * h,
+        w,
+        h,
+        color: CONFIG.rowColors[ row ],
+        alive: true,
+      } );
+    }
+  }
+  return bricks;
+}
+
+state.bricks = createBricks();
 
 const canvas = document.getElementById( 'game' );
 const ctx = canvas.getContext( '2d' );
@@ -99,6 +122,9 @@ function update() {
 
 function render() {
   ctx.clearRect( 0, 0, CONFIG.width, CONFIG.height );
+  for ( const br of state.bricks ) {
+    if ( br.alive ) drawSprite( ctx, 'block_' + br.color, br.x, br.y, br.w, br.h );
+  }
   const p = state.paddle;
   drawSprite( ctx, 'paddle', p.x, p.y, p.w, p.h );
   const b = state.ball;
