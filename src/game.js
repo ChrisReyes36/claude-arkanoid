@@ -7,6 +7,7 @@ const CONFIG = {
   brick: { w: 60, h: 30, cols: 13, rows: 7, offsetX: 10, offsetY: 60 },
   pointsPerBrick: 10,
   rowColors: ['red', 'yellow', 'green', 'cyan', 'magenta', 'hotpink', 'gray'],
+  sound: { volume: 0.5 },
 };
 
 const state = {
@@ -17,7 +18,20 @@ const state = {
   ball: { x: 0, y: 0, r: 8, vx: 0, vy: 0 },
   bricks: [],
   explosions: [],
+  muted: false,
 };
+
+const SOUNDS = {
+  bounce: new Audio( 'assets/sounds/ball-bounce.mp3' ),
+  break: new Audio( 'assets/sounds/break-sound.mp3' ),
+};
+
+function playSound( name ) {
+  if ( state.muted ) return;
+  const sound = SOUNDS[ name ].cloneNode();
+  sound.volume = CONFIG.sound.volume;
+  sound.play().catch( () => {} );
+}
 
 function createBricks() {
   const { w, h, cols, rows, offsetX, offsetY } = CONFIG.brick;
@@ -111,6 +125,7 @@ function bounceOnPaddle() {
   b.vx = CONFIG.ballSpeed * Math.sin( angle );
   b.vy = -CONFIG.ballSpeed * Math.cos( angle );
   b.y = p.y - b.r;
+  playSound( 'bounce' );
 }
 
 function bounceOnBricks( now ) {
@@ -190,13 +205,16 @@ function update( now ) {
     if ( b.x - b.r < 0 ) {
       b.x = b.r;
       b.vx = Math.abs( b.vx );
+      playSound( 'bounce' );
     } else if ( b.x + b.r > CONFIG.width ) {
       b.x = CONFIG.width - b.r;
       b.vx = -Math.abs( b.vx );
+      playSound( 'bounce' );
     }
     if ( b.y - b.r < 0 ) {
       b.y = b.r;
       b.vy = Math.abs( b.vy );
+      playSound( 'bounce' );
     }
 
     bounceOnPaddle();
