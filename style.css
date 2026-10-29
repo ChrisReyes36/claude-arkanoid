@@ -11,6 +11,9 @@ body {
 }
 
 canvas {
+  --level-color: #4dd0e1;
   background: #000;
   display: block;
+  box-shadow: 0 0 0 2px var(--level-color), 0 0 24px var(--level-color);
+  transition: box-shadow 0.6s ease;
 }

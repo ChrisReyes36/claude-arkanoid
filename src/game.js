@@ -75,6 +75,14 @@ function levelBounceAngle() {
   return CONFIG.maxBounceAngle + ( CONFIG.levels.maxBounceAngle - CONFIG.maxBounceAngle ) * levelProgress();
 }
 
+function levelColor() {
+  return CONFIG.levels.colors[ state.level - 1 ];
+}
+
+function applyLevelColor() {
+  canvas.style.setProperty( '--level-color', levelColor() );
+}
+
 function createBricks() {
   const { w, h, cols, rows, offsetX, offsetY } = CONFIG.brick;
   const bricks = [];
@@ -100,6 +108,7 @@ function resetGame() {
   state.score = 0;
   state.level = 1;
   state.levelUpAt = null;
+  applyLevelColor();
   state.lives = 3;
   state.paddle.x = 340;
   state.ball.vx = 0;
@@ -114,6 +123,7 @@ const spriteSheet = new Image();
 spriteSheet.src = 'assets/spritesheet-breakout.png';
 const LIFE_ICON = { size: 20 };
 ctx.imageSmoothingEnabled = false;
+applyLevelColor();
 
 const keys = { left: false, right: false };
 
@@ -181,6 +191,7 @@ function levelUp( now ) {
   const oldSpeed = levelBallSpeed();
   state.level = newLevel;
   state.levelUpAt = now;
+  applyLevelColor();
   const ratio = levelBallSpeed() / oldSpeed;
   state.ball.vx *= ratio;
   state.ball.vy *= ratio;
@@ -226,9 +237,14 @@ function drawHud() {
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillText( 'Puntaje: ' + state.score, 10, 30 );
+  ctx.textAlign = 'center';
+  ctx.fillStyle = levelColor();
+  ctx.fillText( 'NIVEL ' + state.level, CONFIG.width / 2, 30 );
+  ctx.fillStyle = '#fff';
   if ( state.muted ) {
-    ctx.textAlign = 'center';
-    ctx.fillText( 'SILENCIO', CONFIG.width / 2, 30 );
+    ctx.font = '14px monospace';
+    ctx.fillText( 'SILENCIO', CONFIG.width / 2, CONFIG.height - 12 );
+    ctx.font = '20px monospace';
   }
   ctx.textAlign = 'right';
   ctx.fillText( 'Vidas:', CONFIG.width - 10 - state.lives * LIFE_ICON.size - 4, 30 );
@@ -237,6 +253,28 @@ function drawHud() {
     const x = CONFIG.width - 10 - ( state.lives - i ) * LIFE_ICON.size;
     ctx.drawImage( spriteSheet, sx, sy, sw, sh, x, 30 - LIFE_ICON.size / 2, LIFE_ICON.size, LIFE_ICON.size );
   }
+}
+
+function drawBanner( now ) {
+  if ( state.levelUpAt === null ) return;
+  const t = ( now - state.levelUpAt ) / CONFIG.levels.bannerDuration;
+  if ( t >= 1 ) return;
+
+  const alpha = t < 0.2 ? t / 0.2 : t > 0.6 ? ( 1 - t ) / 0.4 : 1;
+  const scale = 0.8 + 0.2 * Math.min( 1, t / 0.2 );
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate( CONFIG.width / 2, CONFIG.height / 2 );
+  ctx.scale( scale, scale );
+  ctx.font = 'bold 64px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = '#000';
+  ctx.strokeText( '¡NIVEL ' + state.level + '!', 0, 0 );
+  ctx.fillStyle = levelColor();
+  ctx.fillText( '¡NIVEL ' + state.level + '!', 0, 0 );
+  ctx.restore();
 }
 
 function drawOverlay() {
@@ -298,6 +336,10 @@ function update( now ) {
 
 function render( now ) {
   ctx.clearRect( 0, 0, CONFIG.width, CONFIG.height );
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = levelColor();
+  ctx.fillRect( 0, 0, CONFIG.width, CONFIG.height );
+  ctx.globalAlpha = 1;
   for ( const br of state.bricks ) {
     if ( br.alive ) drawSprite( ctx, 'block_' + br.color, br.x, br.y, br.w, br.h );
   }
@@ -312,6 +354,7 @@ function render( now ) {
   const b = state.ball;
   drawSprite( ctx, 'ball', b.x - b.r, b.y - b.r, b.r * 2, b.r * 2 );
   drawHud();
+  drawBanner( now );
   drawOverlay();
 }
 
