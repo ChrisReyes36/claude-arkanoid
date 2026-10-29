@@ -1,6 +1,6 @@
 # SPEC 04 — Niveles por puntaje
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01, SPEC 02, SPEC 03
 > **Fecha:** 2026-10-29
 > **Objetivo:** El nivel sube cada 150 puntos (hasta el 10), aumentando la velocidad de la bola y el ángulo de rebote del paddle, con el nivel visible en el HUD, un banner al subir y un color propio por nivel.

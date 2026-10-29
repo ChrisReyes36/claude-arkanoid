@@ -32,6 +32,8 @@ const state = {
   bricks: [],
   explosions: [],
   muted: false,
+  paused: false,
+  menuIndex: 0,
 };
 
 const SOUNDS = {
@@ -143,22 +145,102 @@ function handleAction() {
   else if ( state.phase === 'lost' ) resetGame();
 }
 
+const MENU = { cols: 5, boxW: 100, boxH: 70, gap: 20, y: 250 };
+
+function menuBox( i ) {
+  const { cols, boxW, boxH, gap, y } = MENU;
+  const x0 = ( CONFIG.width - ( cols * boxW + ( cols - 1 ) * gap ) ) / 2;
+  return {
+    x: x0 + ( i % cols ) * ( boxW + gap ),
+    y: y + Math.floor( i / cols ) * ( boxH + gap ),
+    w: boxW,
+    h: boxH,
+  };
+}
+
+function canvasPoint( e ) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: ( e.clientX - rect.left ) * ( CONFIG.width / rect.width ),
+    y: ( e.clientY - rect.top ) * ( CONFIG.height / rect.height ),
+  };
+}
+
+function menuIndexAt( pt ) {
+  for ( let i = 0; i < CONFIG.levels.max; i++ ) {
+    const r = menuBox( i );
+    if ( pt.x >= r.x && pt.x <= r.x + r.w && pt.y >= r.y && pt.y <= r.y + r.h ) return i;
+  }
+  return -1;
+}
+
+function togglePause() {
+  if ( state.phase === 'lost' ) return;
+  state.paused = !state.paused;
+  state.menuIndex = state.level - 1;
+  keys.left = keys.right = false;
+}
+
+function startFromLevel( level ) {
+  resetGame();
+  state.level = level;
+  state.score = ( level - 1 ) * CONFIG.levels.pointsPerLevel;
+  applyLevelColor();
+  state.paused = false;
+}
+
+function moveMenu( dx, dy ) {
+  const { max } = CONFIG.levels;
+  const cols = MENU.cols;
+  let i = state.menuIndex + dx + dy * cols;
+  if ( i < 0 || i >= max ) i = state.menuIndex;
+  state.menuIndex = i;
+}
+
+function handleMenuKey( e ) {
+  if ( e.code === 'ArrowLeft' || e.code === 'KeyA' ) moveMenu( -1, 0 );
+  else if ( e.code === 'ArrowRight' || e.code === 'KeyD' ) moveMenu( 1, 0 );
+  else if ( e.code === 'ArrowUp' || e.code === 'KeyW' ) moveMenu( 0, -1 );
+  else if ( e.code === 'ArrowDown' || e.code === 'KeyS' ) moveMenu( 0, 1 );
+  else if ( e.code === 'Enter' || e.code === 'Space' ) startFromLevel( state.menuIndex + 1 );
+}
+
 window.addEventListener( 'keydown', e => {
+  if ( ( e.code === 'Escape' || e.code === 'KeyP' ) && !e.repeat ) {
+    togglePause();
+    return;
+  }
+  if ( e.code === 'KeyM' && !e.repeat ) state.muted = !state.muted;
+  if ( state.paused ) {
+    e.preventDefault();
+    handleMenuKey( e );
+    return;
+  }
   if ( e.code === 'Space' ) {
     e.preventDefault();
     if ( !e.repeat ) handleAction();
   }
-  if ( e.code === 'KeyM' && !e.repeat ) state.muted = !state.muted;
   setKey( e, true );
 } );
 window.addEventListener( 'keyup', e => setKey( e, false ) );
 
-canvas.addEventListener( 'mousedown', handleAction );
+canvas.addEventListener( 'mousedown', e => {
+  if ( state.paused ) {
+    const i = menuIndexAt( canvasPoint( e ) );
+    if ( i >= 0 ) startFromLevel( i + 1 );
+    return;
+  }
+  handleAction();
+} );
 
 canvas.addEventListener( 'mousemove', e => {
-  const rect = canvas.getBoundingClientRect();
-  const mouseX = ( e.clientX - rect.left ) * ( CONFIG.width / rect.width );
-  state.paddle.x = mouseX - state.paddle.w / 2;
+  const pt = canvasPoint( e );
+  if ( state.paused ) {
+    const i = menuIndexAt( pt );
+    if ( i >= 0 ) state.menuIndex = i;
+    return;
+  }
+  state.paddle.x = pt.x - state.paddle.w / 2;
   clampPaddle();
 } );
 
@@ -292,7 +374,40 @@ function drawOverlay() {
   ctx.fillText( 'Espacio o clic para reiniciar', CONFIG.width / 2, CONFIG.height / 2 + 90 );
 }
 
+function drawPauseMenu() {
+  if ( !state.paused ) return;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  ctx.fillRect( 0, 0, CONFIG.width, CONFIG.height );
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 48px monospace';
+  ctx.fillText( 'PAUSA', CONFIG.width / 2, 150 );
+  ctx.font = '20px monospace';
+  ctx.fillText( 'Elige un nivel para empezar desde ahí', CONFIG.width / 2, 210 );
+
+  for ( let i = 0; i < CONFIG.levels.max; i++ ) {
+    const r = menuBox( i );
+    const color = CONFIG.levels.colors[ i ];
+    const selected = i === state.menuIndex;
+    ctx.fillStyle = selected ? color : 'rgba(255, 255, 255, 0.08)';
+    ctx.fillRect( r.x, r.y, r.w, r.h );
+    ctx.lineWidth = selected ? 4 : 2;
+    ctx.strokeStyle = color;
+    ctx.strokeRect( r.x, r.y, r.w, r.h );
+    ctx.fillStyle = selected ? '#000' : color;
+    ctx.font = 'bold 32px monospace';
+    ctx.fillText( String( i + 1 ), r.x + r.w / 2, r.y + r.h / 2 );
+  }
+
+  ctx.fillStyle = '#fff';
+  ctx.font = '16px monospace';
+  ctx.fillText( 'Flechas/WASD o ratón: elegir · Enter o clic: empezar (reinicia partida)', CONFIG.width / 2, 470 );
+  ctx.fillText( 'Esc o P: continuar', CONFIG.width / 2, 500 );
+}
+
 function update( now ) {
+  if ( state.paused ) return;
   if ( keys.left ) state.paddle.x -= CONFIG.paddleSpeed;
   if ( keys.right ) state.paddle.x += CONFIG.paddleSpeed;
   clampPaddle();
@@ -356,6 +471,7 @@ function render( now ) {
   drawHud();
   drawBanner( now );
   drawOverlay();
+  drawPauseMenu();
 }
 
 function loop( now ) {
