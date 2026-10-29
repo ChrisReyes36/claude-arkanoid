@@ -3,6 +3,7 @@ const CONFIG = {
   height: 600,
   paddleSpeed: 8,
   ballSpeed: 6,
+  maxBounceAngle: 60,
 };
 
 const state = {
@@ -52,6 +53,21 @@ function clampPaddle() {
   p.x = Math.max( 0, Math.min( CONFIG.width - p.w, p.x ) );
 }
 
+function bounceOnPaddle() {
+  const b = state.ball;
+  const p = state.paddle;
+  const touching = b.vy > 0
+    && b.x + b.r > p.x && b.x - b.r < p.x + p.w
+    && b.y + b.r >= p.y && b.y - b.r <= p.y + p.h;
+  if ( !touching ) return;
+
+  const offset = ( b.x - ( p.x + p.w / 2 ) ) / ( p.w / 2 );
+  const angle = Math.max( -1, Math.min( 1, offset ) ) * CONFIG.maxBounceAngle * Math.PI / 180;
+  b.vx = CONFIG.ballSpeed * Math.sin( angle );
+  b.vy = -CONFIG.ballSpeed * Math.cos( angle );
+  b.y = p.y - b.r;
+}
+
 function update() {
   if ( keys.left ) state.paddle.x -= CONFIG.paddleSpeed;
   if ( keys.right ) state.paddle.x += CONFIG.paddleSpeed;
@@ -76,6 +92,8 @@ function update() {
       b.y = b.r;
       b.vy = Math.abs( b.vy );
     }
+
+    bounceOnPaddle();
   }
 }
 
