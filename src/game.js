@@ -130,7 +130,7 @@ function launchBall() {
 
 function handleAction() {
   if ( state.phase === 'ready' ) launchBall();
-  else if ( state.phase === 'won' || state.phase === 'lost' ) resetGame();
+  else if ( state.phase === 'lost' ) resetGame();
 }
 
 window.addEventListener( 'keydown', e => {
@@ -174,6 +174,18 @@ function bounceOnPaddle() {
   queueSound( 'bounce' );
 }
 
+function levelUp( now ) {
+  const newLevel = levelForScore( state.score );
+  if ( newLevel <= state.level ) return;
+
+  const oldSpeed = levelBallSpeed();
+  state.level = newLevel;
+  state.levelUpAt = now;
+  const ratio = levelBallSpeed() / oldSpeed;
+  state.ball.vx *= ratio;
+  state.ball.vy *= ratio;
+}
+
 function bounceOnBricks( now ) {
   const b = state.ball;
   for ( const br of state.bricks ) {
@@ -185,6 +197,7 @@ function bounceOnBricks( now ) {
     state.explosions.push( { x: br.x, y: br.y, w: br.w, h: br.h, color: br.color, start: now } );
     state.score += CONFIG.pointsPerBrick;
     queueSound( 'break' );
+    levelUp( now );
 
     // Penetración por cada lado; el menor indica por dónde entró la bola.
     const fromLeft = b.x + b.r - br.x;
@@ -227,17 +240,18 @@ function drawHud() {
 }
 
 function drawOverlay() {
-  if ( state.phase !== 'won' && state.phase !== 'lost' ) return;
+  if ( state.phase !== 'lost' ) return;
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
   ctx.fillRect( 0, 0, CONFIG.width, CONFIG.height );
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = 'bold 48px monospace';
-  ctx.fillText( state.phase === 'won' ? '¡VICTORIA!' : 'GAME OVER', CONFIG.width / 2, CONFIG.height / 2 - 40 );
+  ctx.fillText( 'GAME OVER', CONFIG.width / 2, CONFIG.height / 2 - 40 );
   ctx.font = '24px monospace';
   ctx.fillText( 'Puntaje final: ' + state.score, CONFIG.width / 2, CONFIG.height / 2 + 10 );
-  ctx.fillText( 'Espacio o clic para reiniciar', CONFIG.width / 2, CONFIG.height / 2 + 50 );
+  ctx.fillText( 'Nivel alcanzado: ' + state.level, CONFIG.width / 2, CONFIG.height / 2 + 45 );
+  ctx.fillText( 'Espacio o clic para reiniciar', CONFIG.width / 2, CONFIG.height / 2 + 90 );
 }
 
 function update( now ) {
@@ -275,7 +289,10 @@ function update( now ) {
 
     if ( state.phase === 'playing' && b.y - b.r > CONFIG.height ) loseLife();
   } else if ( state.phase === 'clearing' && state.explosions.length === 0 ) {
-    state.phase = 'won';
+    state.bricks = createBricks();
+    b.vx = 0;
+    b.vy = 0;
+    state.phase = 'ready';
   }
 }
 
