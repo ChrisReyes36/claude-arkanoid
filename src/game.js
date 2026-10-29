@@ -5,11 +5,14 @@ const CONFIG = {
   ballSpeed: 6,
   maxBounceAngle: 60,
   brick: { w: 60, h: 30, cols: 13, rows: 7, offsetX: 10, offsetY: 60 },
+  pointsPerBrick: 10,
   rowColors: ['red', 'yellow', 'green', 'cyan', 'magenta', 'hotpink', 'gray'],
 };
 
 const state = {
   phase: 'ready',
+  score: 0,
+  lives: 3,
   paddle: { x: 340, y: 560, w: 120, h: 14 },
   ball: { x: 0, y: 0, r: 8, vx: 0, vy: 0 },
   bricks: [],
@@ -91,6 +94,47 @@ function bounceOnPaddle() {
   b.y = p.y - b.r;
 }
 
+function bounceOnBricks() {
+  const b = state.ball;
+  for ( const br of state.bricks ) {
+    if ( !br.alive ) continue;
+    if ( b.x + b.r <= br.x || b.x - b.r >= br.x + br.w ) continue;
+    if ( b.y + b.r <= br.y || b.y - b.r >= br.y + br.h ) continue;
+
+    br.alive = false;
+    state.score += CONFIG.pointsPerBrick;
+
+    // Penetración por cada lado; el menor indica por dónde entró la bola.
+    const fromLeft = b.x + b.r - br.x;
+    const fromRight = br.x + br.w - ( b.x - b.r );
+    const fromTop = b.y + b.r - br.y;
+    const fromBottom = br.y + br.h - ( b.y - b.r );
+    if ( Math.min( fromLeft, fromRight ) < Math.min( fromTop, fromBottom ) ) {
+      b.vx = fromLeft < fromRight ? -Math.abs( b.vx ) : Math.abs( b.vx );
+    } else {
+      b.vy = fromTop < fromBottom ? -Math.abs( b.vy ) : Math.abs( b.vy );
+    }
+    return; // solo la primera colisión por frame
+  }
+}
+
+function loseLife() {
+  state.lives--;
+  state.ball.vx = 0;
+  state.ball.vy = 0;
+  state.phase = 'ready';
+}
+
+function drawHud() {
+  ctx.fillStyle = '#fff';
+  ctx.font = '20px monospace';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.fillText( 'Puntaje: ' + state.score, 10, 30 );
+  ctx.textAlign = 'right';
+  ctx.fillText( 'Vidas: ' + state.lives, CONFIG.width - 10, 30 );
+}
+
 function update() {
   if ( keys.left ) state.paddle.x -= CONFIG.paddleSpeed;
   if ( keys.right ) state.paddle.x += CONFIG.paddleSpeed;
@@ -117,6 +161,9 @@ function update() {
     }
 
     bounceOnPaddle();
+    bounceOnBricks();
+
+    if ( b.y - b.r > CONFIG.height ) loseLife();
   }
 }
 
@@ -129,6 +176,7 @@ function render() {
   drawSprite( ctx, 'paddle', p.x, p.y, p.w, p.h );
   const b = state.ball;
   drawSprite( ctx, 'ball', b.x - b.r, b.y - b.r, b.r * 2, b.r * 2 );
+  drawHud();
 }
 
 function loop() {
