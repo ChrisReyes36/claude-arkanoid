@@ -9,10 +9,7 @@ const CONFIG = {
   rowColors: ['red', 'yellow', 'green', 'cyan', 'magenta', 'hotpink', 'gray'],
   sound: { volume: 0.5 },
   levels: {
-    pointsPerLevel: 150,
     max: 10,
-    maxBallSpeed: 4.2,
-    maxBounceAngle: 75,
     bannerDuration: 1500,
     colors: [
       '#4dd0e1', '#4caf50', '#cddc39', '#ffeb3b', '#ff9800',
@@ -60,22 +57,19 @@ function flushSound() {
   frameSound = null;
 }
 
-function levelForScore( score ) {
-  const { pointsPerLevel, max } = CONFIG.levels;
-  return Math.min( max, 1 + Math.floor( score / pointsPerLevel ) );
-}
-
-function levelProgress() {
-  return ( state.level - 1 ) / ( CONFIG.levels.max - 1 );
-}
-
-function levelBallSpeed() {
-  return CONFIG.ballSpeed + ( CONFIG.levels.maxBallSpeed - CONFIG.ballSpeed ) * levelProgress();
-}
-
-function levelBounceAngle() {
-  return CONFIG.maxBounceAngle + ( CONFIG.levels.maxBounceAngle - CONFIG.maxBounceAngle ) * levelProgress();
-}
+// Figura de cada nivel: ( fila, columna ) => ¿hay bloque?
+const LEVEL_SHAPES = [
+  () => true,
+  ( r, c ) => ( r + c ) % 2 === 0,
+  ( r ) => r % 2 === 0,
+  ( r, c ) => Math.abs( c - 6 ) <= r,
+  ( r, c ) => Math.abs( c - 6 ) <= 6 - r,
+  ( r, c ) => Math.abs( c - 6 ) + Math.abs( r - 3 ) * 2 <= 6,
+  ( r, c ) => r === 0 || r === 6 || c === 0 || c === 12,
+  ( r, c ) => c % 2 === 0,
+  ( r, c ) => ( r + c ) % 4 < 2,
+  ( r, c ) => r === 0 || r === 6 || c === 0 || c === 12 || c === 6 || r === 3,
+];
 
 function levelColor() {
   return CONFIG.levels.colors[ state.level - 1 ];
@@ -87,9 +81,11 @@ function applyLevelColor() {
 
 function createBricks() {
   const { w, h, cols, rows, offsetX, offsetY } = CONFIG.brick;
+  const shape = LEVEL_SHAPES[ state.level - 1 ];
   const bricks = [];
   for ( let row = 0; row < rows; row++ ) {
     for ( let col = 0; col < cols; col++ ) {
+      if ( !shape( row, col ) ) continue;
       bricks.push( {
         x: offsetX + col * w,
         y: offsetY + row * h,
@@ -136,7 +132,7 @@ function setKey( e, down ) {
 
 function launchBall() {
   state.ball.vx = 0;
-  state.ball.vy = -levelBallSpeed();
+  state.ball.vy = -CONFIG.ballSpeed;
   state.phase = 'playing';
 }
 
@@ -184,7 +180,7 @@ function togglePause() {
 function startFromLevel( level ) {
   resetGame();
   state.level = level;
-  state.score = ( level - 1 ) * CONFIG.levels.pointsPerLevel;
+  state.bricks = createBricks();
   applyLevelColor();
   state.paused = false;
 }
@@ -258,26 +254,14 @@ function bounceOnPaddle() {
   if ( !touching ) return;
 
   const offset = ( b.x - ( p.x + p.w / 2 ) ) / ( p.w / 2 );
-  const angle = Math.max( -1, Math.min( 1, offset ) ) * levelBounceAngle() * Math.PI / 180;
-  const speed = levelBallSpeed();
+  const angle = Math.max( -1, Math.min( 1, offset ) ) * CONFIG.maxBounceAngle * Math.PI / 180;
+  const speed = CONFIG.ballSpeed;
   b.vx = speed * Math.sin( angle );
   b.vy = -speed * Math.cos( angle );
   b.y = p.y - b.r;
   queueSound( 'bounce' );
 }
 
-function levelUp( now ) {
-  const newLevel = levelForScore( state.score );
-  if ( newLevel <= state.level ) return;
-
-  const oldSpeed = levelBallSpeed();
-  state.level = newLevel;
-  state.levelUpAt = now;
-  applyLevelColor();
-  const ratio = levelBallSpeed() / oldSpeed;
-  state.ball.vx *= ratio;
-  state.ball.vy *= ratio;
-}
 
 function bounceOnBricks( now ) {
   const b = state.ball;
@@ -290,7 +274,6 @@ function bounceOnBricks( now ) {
     state.explosions.push( { x: br.x, y: br.y, w: br.w, h: br.h, color: br.color, start: now } );
     state.score += CONFIG.pointsPerBrick;
     queueSound( 'break' );
-    levelUp( now );
 
     // Penetración por cada lado; el menor indica por dónde entró la bola.
     const fromLeft = b.x + b.r - br.x;
@@ -442,6 +425,11 @@ function update( now ) {
 
     if ( state.phase === 'playing' && b.y - b.r > CONFIG.height ) loseLife();
   } else if ( state.phase === 'clearing' && state.explosions.length === 0 ) {
+    if ( state.level < CONFIG.levels.max ) {
+      state.level++;
+      state.levelUpAt = now;
+      applyLevelColor();
+    }
     state.bricks = createBricks();
     b.vx = 0;
     b.vy = 0;
