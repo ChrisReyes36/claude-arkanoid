@@ -8,11 +8,24 @@ const CONFIG = {
   pointsPerBrick: 10,
   rowColors: ['red', 'yellow', 'green', 'cyan', 'magenta', 'hotpink', 'gray'],
   sound: { volume: 0.5 },
+  levels: {
+    pointsPerLevel: 150,
+    max: 10,
+    maxBallSpeed: 4.2,
+    maxBounceAngle: 75,
+    bannerDuration: 1500,
+    colors: [
+      '#4dd0e1', '#4caf50', '#cddc39', '#ffeb3b', '#ff9800',
+      '#ff5722', '#f44336', '#e91e63', '#9c27b0', '#7c4dff',
+    ],
+  },
 };
 
 const state = {
   phase: 'ready',
   score: 0,
+  level: 1,
+  levelUpAt: null,
   lives: 3,
   paddle: { x: 340, y: 560, w: 120, h: 14 },
   ball: { x: 0, y: 0, r: 8, vx: 0, vy: 0 },
@@ -45,6 +58,23 @@ function flushSound() {
   frameSound = null;
 }
 
+function levelForScore( score ) {
+  const { pointsPerLevel, max } = CONFIG.levels;
+  return Math.min( max, 1 + Math.floor( score / pointsPerLevel ) );
+}
+
+function levelProgress() {
+  return ( state.level - 1 ) / ( CONFIG.levels.max - 1 );
+}
+
+function levelBallSpeed() {
+  return CONFIG.ballSpeed + ( CONFIG.levels.maxBallSpeed - CONFIG.ballSpeed ) * levelProgress();
+}
+
+function levelBounceAngle() {
+  return CONFIG.maxBounceAngle + ( CONFIG.levels.maxBounceAngle - CONFIG.maxBounceAngle ) * levelProgress();
+}
+
 function createBricks() {
   const { w, h, cols, rows, offsetX, offsetY } = CONFIG.brick;
   const bricks = [];
@@ -68,6 +98,8 @@ state.bricks = createBricks();
 function resetGame() {
   state.phase = 'ready';
   state.score = 0;
+  state.level = 1;
+  state.levelUpAt = null;
   state.lives = 3;
   state.paddle.x = 340;
   state.ball.vx = 0;
@@ -92,7 +124,7 @@ function setKey( e, down ) {
 
 function launchBall() {
   state.ball.vx = 0;
-  state.ball.vy = -CONFIG.ballSpeed;
+  state.ball.vy = -levelBallSpeed();
   state.phase = 'playing';
 }
 
@@ -134,9 +166,10 @@ function bounceOnPaddle() {
   if ( !touching ) return;
 
   const offset = ( b.x - ( p.x + p.w / 2 ) ) / ( p.w / 2 );
-  const angle = Math.max( -1, Math.min( 1, offset ) ) * CONFIG.maxBounceAngle * Math.PI / 180;
-  b.vx = CONFIG.ballSpeed * Math.sin( angle );
-  b.vy = -CONFIG.ballSpeed * Math.cos( angle );
+  const angle = Math.max( -1, Math.min( 1, offset ) ) * levelBounceAngle() * Math.PI / 180;
+  const speed = levelBallSpeed();
+  b.vx = speed * Math.sin( angle );
+  b.vy = -speed * Math.cos( angle );
   b.y = p.y - b.r;
   queueSound( 'bounce' );
 }
