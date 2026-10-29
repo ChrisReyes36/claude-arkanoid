@@ -33,6 +33,18 @@ function playSound( name ) {
   sound.play().catch( () => {} );
 }
 
+// Un solo sonido por frame; 'break' tiene prioridad sobre 'bounce'.
+let frameSound = null;
+
+function queueSound( name ) {
+  if ( frameSound !== 'break' ) frameSound = name;
+}
+
+function flushSound() {
+  if ( frameSound ) playSound( frameSound );
+  frameSound = null;
+}
+
 function createBricks() {
   const { w, h, cols, rows, offsetX, offsetY } = CONFIG.brick;
   const bricks = [];
@@ -125,7 +137,7 @@ function bounceOnPaddle() {
   b.vx = CONFIG.ballSpeed * Math.sin( angle );
   b.vy = -CONFIG.ballSpeed * Math.cos( angle );
   b.y = p.y - b.r;
-  playSound( 'bounce' );
+  queueSound( 'bounce' );
 }
 
 function bounceOnBricks( now ) {
@@ -138,6 +150,7 @@ function bounceOnBricks( now ) {
     br.alive = false;
     state.explosions.push( { x: br.x, y: br.y, w: br.w, h: br.h, color: br.color, start: now } );
     state.score += CONFIG.pointsPerBrick;
+    queueSound( 'break' );
 
     // Penetración por cada lado; el menor indica por dónde entró la bola.
     const fromLeft = b.x + b.r - br.x;
@@ -205,20 +218,21 @@ function update( now ) {
     if ( b.x - b.r < 0 ) {
       b.x = b.r;
       b.vx = Math.abs( b.vx );
-      playSound( 'bounce' );
+      queueSound( 'bounce' );
     } else if ( b.x + b.r > CONFIG.width ) {
       b.x = CONFIG.width - b.r;
       b.vx = -Math.abs( b.vx );
-      playSound( 'bounce' );
+      queueSound( 'bounce' );
     }
     if ( b.y - b.r < 0 ) {
       b.y = b.r;
       b.vy = Math.abs( b.vy );
-      playSound( 'bounce' );
+      queueSound( 'bounce' );
     }
 
     bounceOnPaddle();
     bounceOnBricks( now );
+    flushSound();
     if ( state.bricks.every( br => !br.alive ) ) state.phase = 'clearing';
 
     if ( state.phase === 'playing' && b.y - b.r > CONFIG.height ) loseLife();
