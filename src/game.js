@@ -1,8 +1,8 @@
 const CONFIG = {
   width: 800,
   height: 600,
-  paddleSpeed: 8,
-  ballSpeed: 6,
+  paddleSpeed: 5,
+  ballSpeed: 2.2,
   maxBounceAngle: 60,
   brick: { w: 60, h: 30, cols: 13, rows: 7, offsetX: 10, offsetY: 60 },
   pointsPerBrick: 10,
@@ -50,6 +50,9 @@ function resetGame() {
 
 const canvas = document.getElementById( 'game' );
 const ctx = canvas.getContext( '2d' );
+const spriteSheet = new Image();
+spriteSheet.src = 'assets/spritesheet-breakout.png';
+const LIFE_ICON = { size: 20 };
 ctx.imageSmoothingEnabled = false;
 
 const keys = { left: false, right: false };
@@ -146,7 +149,12 @@ function drawHud() {
   ctx.textAlign = 'left';
   ctx.fillText( 'Puntaje: ' + state.score, 10, 30 );
   ctx.textAlign = 'right';
-  ctx.fillText( 'Vidas: ' + state.lives, CONFIG.width - 10, 30 );
+  ctx.fillText( 'Vidas:', CONFIG.width - 10 - state.lives * LIFE_ICON.size - 4, 30 );
+  const { sx, sy, sw, sh } = SPRITES.ball;
+  for ( let i = 0; i < state.lives; i++ ) {
+    const x = CONFIG.width - 10 - ( state.lives - i ) * LIFE_ICON.size;
+    ctx.drawImage( spriteSheet, sx, sy, sw, sh, x, 30 - LIFE_ICON.size / 2, LIFE_ICON.size, LIFE_ICON.size );
+  }
 }
 
 function drawOverlay() {
